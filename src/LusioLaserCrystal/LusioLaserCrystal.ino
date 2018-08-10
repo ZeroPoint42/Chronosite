@@ -42,9 +42,6 @@
 #define NUM_LEDS_PER_OUTER_STRIP 4
 #define NUM_LEDS_PER_INNER_STRIP 33// 161
 
-#define FPS 70        // Animation frames/second (ish)
-#define BRIGHTNESS 127 //127 ~ 1/2 brightness [0-256]
-
 #define HUE_PIN 0         // sint value for the Hue laser pot
 #define BRIGHTNESS_PIN 1  // int value for the Brightness laser pot
 #define SPEED_PIN 2       // int value for the Speed laser pot
@@ -55,7 +52,9 @@ int sensorValue_H = 0; // variable to store the value coming from the Hue sensor
 int sensorValue_B = 0; // variable to store the value coming from the Brightness sensor
 int sensorValue_S = 0; // variable to store the value coming from the Speed sensor
 
+uint16_t gFps = 70;
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
+uint8_t gBrightness = 127; //127 ~ 1/2 brightness [0-256]
 byte gRed = 100;
 byte gBlue = 100;
 byte gGreen = 100;
@@ -85,7 +84,7 @@ Adafruit_NeoPixel outerLeds = Adafruit_NeoPixel(NUM_LEDS_PER_OUTER_STRIP, 9, NEO
 void setup(void)
 {
     innerLeds.begin();
-    innerLeds.setBrightness(BRIGHTNESS); //50% Brightness (range: 1-256)
+    innerLeds.setBrightness(gBrightness); //50% Brightness (range: 1-256)
 
     pinMode(INNER_ANIM_PIN, INPUT_PULLUP);
     pinMode(OUTER_ANIM_PIN, INPUT_PULLUP);
@@ -156,7 +155,7 @@ void loop(void)
 
     innerLeds.show();
 
-    FastLED.delay(1000 / FPS);
+    FastLED.delay(1000 / gFps);
 }
 
 // *************************MAIN ANIMATION CYCLE***************************
@@ -520,7 +519,7 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex, uint8_t numStrips, uint8_t nu
     {
         for (int j = 0; j < numLedsPerStrip; j++)
         {
-            CRGB rgb = ColorFromPalette(currentPalette, colorIndex, BRIGHTNESS, currentBlending);
+            CRGB rgb = ColorFromPalette(currentPalette, colorIndex, gBrightness, currentBlending);
             colorIndex += 1;
 
             setPixelColor(i, j, rgb, isInner);
