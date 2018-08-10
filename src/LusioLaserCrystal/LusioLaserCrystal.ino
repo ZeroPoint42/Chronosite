@@ -37,9 +37,10 @@
 
 #define NUM_UPPER_STRIPS 4
 #define NUM_LOWER_STRIPS 4
-#define NUM_STRIPS (NUM_UPPER_STRIPS + NUM_LOWER_STRIPS)
-#define NUM_OUTER_LEDS 4
-#define NUM_LEDS_PER_STRIP 33// 161
+#define NUM_OUTER_STRIPS 1
+#define NUM_INNER_STRIPS (NUM_UPPER_STRIPS + NUM_LOWER_STRIPS)
+#define NUM_LEDS_PER_OUTER_STRIP 4
+#define NUM_LEDS_PER_INNER_STRIP 33// 161
 
 #define FPS 70        // Animation frames/second (ish)
 #define BRIGHTNESS 127 //127 ~ 1/2 brightness [0-256]
@@ -58,7 +59,7 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 byte gRed = 100;
 byte gBlue = 100;
 byte gGreen = 100;
-uint32_t gFade = 0;
+uint32_t gFade = 4;
 bool isFading = false;
 CRGBPalette16 currentPalette;
 TBlendType currentBlending;
@@ -75,8 +76,8 @@ int paletteIndex = 0;
 //long previousMillis = 0;   // Will store last time button was updated
 
 int8_t pins[8] = {PIN_SERIAL1_RX, PIN_SERIAL1_TX, MISO, 13, 5, MOSI, A4, A3}; //Pins switched from default!! Hardware dependant!! https://learn.adafruit.com/adafruit-neopxl8-featherwing-and-library/neopxl8-arduino-library
-Adafruit_NeoPXL8 innerLeds(NUM_LEDS_PER_STRIP, pins, NEO_GRB);
-Adafruit_NeoPixel outerLeds = Adafruit_NeoPixel(NUM_OUTER_LEDS, 9, NEO_GRB);
+Adafruit_NeoPXL8 innerLeds(NUM_LEDS_PER_INNER_STRIP, pins, NEO_GRB);
+Adafruit_NeoPixel outerLeds = Adafruit_NeoPixel(NUM_LEDS_PER_OUTER_STRIP, 9, NEO_GRB);
 
 /*****************************************************************************/
 
@@ -103,12 +104,6 @@ void setup(void)
 
 void loop(void)
 {
-    //   for(uint8_t r=0; r<8; r++) { // For each row...
-    //     for(int p=0; p<NUM_LED; p++) { // For each pixel of row...
-    //       leds.setPixelColor(r * NUM_LED + p, rain(r, p));
-    //     }
-    //   }
-    //   leds.show();
     // Get current button state.
     bool newStateInr = digitalRead(INNER_ANIM_PIN);
     bool newStateOut = digitalRead(OUTER_ANIM_PIN);
@@ -171,22 +166,22 @@ void showInnerAnimation()
     switch (innerAnimationIndex)
     {
         case 0: 
-            bpm();
+            bpm(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         case 1: 
-            rainbow(gHue, 7);
+            rainbow(gHue, 7, NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         case 2:
-            confetti();
+            confetti(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         case 3: 
-            sinelon();
+            sinelon(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         case 4: 
-            juggle();
+            juggle(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         case 5:
-            paletteCycle();
+            paletteCycle(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
             break;
         // case 6:
         //     RunningLights(red, green, blue, 200);
@@ -210,26 +205,32 @@ void showOuterAnimation()
 {
     switch (outerAnimationIndex)
     {
-    case 0:
-        break;
-    case 1:
-        break;
-    case 2:
-        break;
-    case 3:
-        break;
-    case 4:
-        break;
-    case 5:
-        break;
-    case 6:
-        break;
-    case 7:
-        break;
-    default:
-        // We've exceeded our allowed values, reset the index to 0.
-        outerAnimationIndex = 0;
-        break;
+        case 0: 
+            bpm(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 1: 
+            rainbow(gHue, 7, NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 2:
+            confetti(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 3: 
+            sinelon(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 4: 
+            juggle(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 5:
+            paletteCycle(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+            break;
+        case 6:
+            break;
+        case 7:
+            break;
+        default:
+            // We've exceeded our allowed values, reset the index to 0.
+            outerAnimationIndex = 0;
+            break;
     }
 }
 //*******************************FUNCTIONS********************************
@@ -264,7 +265,7 @@ void LaserPots()
 
 //******************************ANIMATIONS**********************************
 
-void rainbow(uint8_t initialHue, uint8_t deltaHue)
+void rainbow(uint8_t initialHue, uint8_t deltaHue, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     CHSV hsv;
     hsv.hue = initialHue;
@@ -272,95 +273,95 @@ void rainbow(uint8_t initialHue, uint8_t deltaHue)
     hsv.sat = 240;
 
      // FastLED's built-in rainbow generator
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        for(int j = 0; j < NUM_LEDS_PER_STRIP; j++) 
+        for(int j = 0; j < numLedsPerStrip; j++) 
         {
-            setPixelColor(i, j, hsv);
+            setPixelColor(i, j, hsv, isInner);
             hsv.hue += deltaHue;
         }
     }
 }
 
-void rainbowWithGlitter(uint8_t initialHue, uint8_t deltaHue)
+void rainbowWithGlitter(uint8_t initialHue, uint8_t deltaHue, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // built-in FastLED rainbow, plus some random sparkly glitter
-    rainbow(initialHue, deltaHue);
-    addGlitter(10);
+    rainbow(initialHue, deltaHue, numStrips, numLedsPerStrip, isInner);
+    addGlitter(10, numStrips, numLedsPerStrip, isInner);
 }
 
-void addGlitter(fract8 chanceOfGlitter)
+void addGlitter(fract8 chanceOfGlitter, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     //add some sparkle
     if (random8() < chanceOfGlitter)
     {
-        for (uint8_t i = 0; i < NUM_STRIPS; i++)
+        for (uint8_t i = 0; i < numStrips; i++)
         {
-            setPixelColor(i, random16(NUM_LEDS_PER_STRIP), CRGB::White);
+            setPixelColor(i, random16(numLedsPerStrip), CRGB::White, isInner);
         }
     }
 }
 
-void bpm()
+void bpm(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
     uint8_t BeatsPerMinute = 60;
     CRGBPalette16 palette = OceanColors_p;
     //CRGBPalette16 palette2 = LavaColors_p;
     uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < NUM_INNER_STRIPS; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
         {
             CRGB color = ColorFromPalette(palette, gHue + (j * 2), beat - gHue + (j * 10));
-            setPixelColor(i, j, color);
+            setPixelColor(i, j, color, isInner);
         }
     }
 }
 
-void sinelon()
+void sinelon(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // a colored dot sweeping back and forth, with fading trails
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(4);
-        int pos = beatsin16(13, 0, NUM_LEDS_PER_STRIP - 1);
-        CRGB rgb = getCRGB(i, pos);
+        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
+        int pos = beatsin16(13, 0, numLedsPerStrip - 1);
+        CRGB rgb = getCRGB(i, pos, isInner);
         rgb += CHSV(gHue, 255, 192);
 
-        setPixelColor(i, pos, rgb);
+        setPixelColor(i, pos, rgb, isInner);
     }
 }
 
-void juggle()
+void juggle(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // eight colored dots, weaving in and out of sync with each other
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(4);
+        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
         byte dothue = 0;
         for (int j = 0; j < 8; j++)
         {
-            int pos = beatsin16(j + 6, 0, NUM_LEDS_PER_STRIP - 1);
-            CRGB rgb = getCRGB(i, pos);
+            int pos = beatsin16(j + 6, 0, numLedsPerStrip - 1);
+            CRGB rgb = getCRGB(i, pos, isInner);
             rgb |= CHSV(dothue, 200, 255);
             dothue += 32;
 
-            setPixelColor(i, pos, rgb);
+            setPixelColor(i, pos, rgb, isInner);
         }
     }
 }
 
-void confetti()
+void confetti(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // random colored speckles that blink in and fade smoothly
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(4);
-        int pos = random16(NUM_LEDS_PER_STRIP);
+        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
+        int pos = random16(numLedsPerStrip);
         CHSV hsv = CHSV(gHue + random8(64), 255, 255);
 
-        addPixelColor(i, pos, hsv);
+        addPixelColor(i, pos, hsv, isInner);
     }
 }
 
@@ -369,17 +370,17 @@ void confetti()
 //     if (currentMillis - previousMillis > SpeedDelay)
 //     { // Time to update
 //         previousMillis = currentMillis;
-//         for (uint8_t i = 0; i < NUM_STRIPS; i++)
+//         for (uint8_t i = 0; i < NUM_INNER_STRIPS; i++)
 //         {
 //             for (int q = 0; q < 3; q++)
 //             {
-//                 for (int i = 0; i < NUM_LEDS_PER_STRIP; i = i + 3)
+//                 for (int i = 0; i < NUM_LEDS_PER_INNER_STRIP; i = i + 3)
 //                 {
 //                     leds[x][i + q] = CRGB(red, green, blue); //turn every third pixel on
 //                 }
 //                 FastLED.show();
 
-//                 for (int i = 0; i < NUM_LEDS_PER_STRIP; i = i + 3)
+//                 for (int i = 0; i < NUM_LEDS_PER_INNER_STRIP; i = i + 3)
 //                 {
 //                     leds[x][i + q] = CRGB(0, 0, 0); //turn every third pixel off
 //                 }
@@ -390,50 +391,50 @@ void confetti()
 
 void fadeInOut(byte red, byte green, byte blue)
 {
-    float r, g, b;
-    if (!isFading)
-    { 
-        if (gFade < 65)
-        {
-            gFade++;
-        }
-        else
-        {
-            gFade = 64;
-            isFading = true;
-        }
-    }
+    // float r, g, b;
+    // if (!isFading)
+    // { 
+    //     if (gFade < 65)
+    //     {
+    //         gFade++;
+    //     }
+    //     else
+    //     {
+    //         gFade = 64;
+    //         isFading = true;
+    //     }
+    // }
     
-    if (isFading)
-    {
-        if (gFade >= 0)
-        {
-            gFade -= 2;
-        }
-        else
-        {
-            gFade = 0;
-            isFading = false;
-        }
-    }
+    // if (isFading)
+    // {
+    //     if (gFade >= 0)
+    //     {
+    //         gFade -= 2;
+    //     }
+    //     else
+    //     {
+    //         gFade = 0;
+    //         isFading = false;
+    //     }
+    // }
 
-    //64 ~ 1/4 brightness
-    r = (gFade / 256.0) * red;
-    g = (gFade / 256.0) * green;
-    b = (gFade / 256.0) * blue;
-    allColor(r, g, b);
+    // //64 ~ 1/4 brightness
+    // r = (gFade / 256.0) * red;
+    // g = (gFade / 256.0) * green;
+    // b = (gFade / 256.0) * blue;
+    // allColor(r, g, b);
 }
 
-void Sparkle(byte red, byte green, byte blue, int SpeedDelay)
+void Sparkle(byte red, byte green, byte blue, int SpeedDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
-    // int Pixel = random(NUM_LEDS_PER_STRIP);
+    // int Pixel = random(NUM_LEDS_PER_INNER_STRIP);
     // setPixel(Pixel, red, green, blue);
     // showStrip();
     // delay(SpeedDelay);
     // setPixel(Pixel, 0, 0, 0);
 }
 
-void RunningLights(byte red, byte green, byte blue, int WaveDelay)
+void RunningLights(byte red, byte green, byte blue, int WaveDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     // //sin wave running lights
     // int Position = 0;
@@ -442,10 +443,10 @@ void RunningLights(byte red, byte green, byte blue, int WaveDelay)
     // //if (currentMillis - previousMillis > WaveDelay) {
     // //previousMillis = currentMillis;
 
-    // for (int i = 0; i < NUM_LEDS_PER_STRIP * 2; i++)
+    // for (int i = 0; i < NUM_LEDS_PER_INNER_STRIP * 2; i++)
     // {
     //     Position++; // = 0; //Position + Rate;
-    //     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++)
+    //     for (int i = 0; i < NUM_LEDS_PER_INNER_STRIP; i++)
     //     {
     //         // sine wave, 3 offset waves make a rainbow!
     //         //float level = sin(i+Position) * 127 + 128;
@@ -462,12 +463,12 @@ void RunningLights(byte red, byte green, byte blue, int WaveDelay)
     // }
 }
 
-void paletteCycle()
+void paletteCycle(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     static uint8_t startIndex = 0;
     startIndex = startIndex + 1; /* motion speed */
 
-    FillLEDsFromPaletteColors(startIndex);
+    FillLEDsFromPaletteColors(startIndex, numStrips, numLedsPerStrip, isInner);
 }
 
 void changePalette()
@@ -492,37 +493,37 @@ void changePalette()
     }
 }
 
-void doThingsToDifferentStrips()
+void doThingsToDifferentStrips(bool isInner)
 {  
     for (uint8_t i = 0; i < NUM_UPPER_STRIPS; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
         {
             CRGB rgb = CRGB(0, 0, 255);
-            setPixelColor(i, j, rgb);
+            setPixelColor(i, j, rgb, isInner);
         }
     }
-    for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_TOTAL_STRIPS; i++)
+    for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_INNER_STRIPS; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
         {
             CRGB rgb = CRGB(0, 0, 255);
-            setPixelColor(i, j, rgb);
+            setPixelColor(i, j, rgb, isInner);
         }
     }
 }
 
-void FillLEDsFromPaletteColors(uint8_t colorIndex)
+void FillLEDsFromPaletteColors(uint8_t colorIndex, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     currentPalette = OceanColors_p;
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < numLedsPerStrip; j++)
         {
             CRGB rgb = ColorFromPalette(currentPalette, colorIndex, BRIGHTNESS, currentBlending);
             colorIndex += 1;
 
-            setPixelColor(i, j, rgb);
+            setPixelColor(i, j, rgb, isInner);
         }
     }
 }
@@ -550,31 +551,31 @@ void SetupTotallyRandomPalette()
 //**************************FastLED_Helpers*************************************
 
 // Changes all LEDS to given color
-void allColor(byte red, byte green, byte blue)
+void allColor(byte red, byte green, byte blue, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < numLedsPerStrip; j++)
         {
-            setPixelColor(i, j, CRGB(red, green, blue));
+            setPixelColor(i, j, CRGB(red, green, blue), isInner);
         }
     }
 }
 
-void allColor(CRGB color)
+void allColor(CRGB color, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
-    allColor(color.red, color.green, color.blue);
+    allColor(color.red, color.green, color.blue, numStrips, numLedsPerStrip, isInner);
 }
 
-void fadeAll(int factor)
+void fadeAll(int factor, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     if (factor < 1) factor = 1;
 
-    for (uint8_t i = 0; i < NUM_STRIPS; i++)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        for (int j = 0; j < NUM_LEDS_PER_STRIP; j++)
+        for (int j = 0; j < numLedsPerStrip; j++)
         {
-            uint32_t colorInt = innerLeds.getPixelColor((i * NUM_LEDS_PER_STRIP) + j);
+            uint32_t colorInt = innerLeds.getPixelColor((i * numLedsPerStrip) + j);
 
             byte red = (colorInt >> 16) & 255;
             byte green = (colorInt >> 8) & 255;
@@ -583,51 +584,61 @@ void fadeAll(int factor)
             CRGB rgb = CRGB(red, green, blue);
             rgb.fadeToBlackBy(factor);
 
-            setPixelColor(i, j, rgb);
+            setPixelColor(i, j, rgb, isInner);
         }
     }
 }
 
-void setPixelColor(int row, int pos, CHSV hsv)
+void setPixelColor(int row, int pos, CHSV hsv, bool isInner)
 {   
     CRGB rgb;
     hsv2rgb_rainbow(hsv, rgb);
     
-    setPixelColor(row, pos, rgb);
+    setPixelColor(row, pos, rgb, isInner);
 }
 
-void setPixelColor(int row, int pos, CRGB color)
+void setPixelColor(int row, int pos, CRGB color, bool isInner)
 {
-    innerLeds.setPixelColor((row * NUM_LEDS_PER_STRIP) + pos, color.red, color.blue, color.green);
+    if (isInner)
+    {
+        innerLeds.setPixelColor((row * NUM_LEDS_PER_INNER_STRIP) + pos, color.red, color.green, color.blue);
+    }
+    else
+    {
+        outerLeds.setPixelColor(pos, color.red, color.green, color.blue);
+    }
 }
 
-void addPixelColor(int row, int pos, CHSV hsv)
+void addPixelColor(int row, int pos, CHSV hsv, bool isInner)
 {
     CRGB rgb;
     hsv2rgb_rainbow(hsv, rgb);
 
-    addPixelColor(row, pos, rgb);
+    addPixelColor(row, pos, rgb, isInner);
 }
 
-void addPixelColor(int row, int pos, CRGB rgb)
+void addPixelColor(int row, int pos, CRGB rgb, bool isInner)
 {
-    rgb += getCRGB(row, pos);
+    rgb += getCRGB(row, pos, isInner);
 
-    setPixelColor(row, pos, rgb);
+    setPixelColor(row, pos, rgb, isInner);
 }
 
-CRGB getCRGB(int row, int pos)
+CRGB getCRGB(int row, int pos, bool isInner)
 {
-    uint32_t colorInt = innerLeds.getPixelColor((row * NUM_LEDS_PER_STRIP) + pos);
+    uint32_t colorInt;
+    if (isInner)
+    {
+        colorInt = innerLeds.getPixelColor((row * NUM_LEDS_PER_INNER_STRIP) + pos);
+    }
+    else
+    {
+        colorInt = outerLeds.getPixelColor(pos);
+    }
 
     byte red = (colorInt >> 16) & 255;
     byte green = (colorInt >> 8) & 255;
     byte blue = colorInt & 255;
 
     return CRGB(red, green, blue);
-}
-
-void setOuterPixelColor(int pos, CRGB color)
-{
-    outerLeds.setPixelColor(pos, color.red, color.blue, color.green);
 }
