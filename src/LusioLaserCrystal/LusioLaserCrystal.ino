@@ -40,7 +40,7 @@
 #define NUM_OUTER_STRIPS 1
 #define NUM_INNER_STRIPS (NUM_UPPER_STRIPS + NUM_LOWER_STRIPS)
 #define NUM_LEDS_PER_OUTER_STRIP 4
-#define NUM_LEDS_PER_INNER_STRIP 33// 161
+#define NUM_LEDS_PER_INNER_STRIP 161
 
 #define HUE_PIN 0         // sint value for the Hue laser pot
 #define BRIGHTNESS_PIN 1  // int value for the Brightness laser pot
@@ -143,7 +143,7 @@ void loop(void)
 
 #ifdef DEBUG
     // For easier pattern testing.
-    EVERY_N_SECONDS(10)
+    EVERY_N_SECONDS(30)
     {
         innerLeds.clear();
         innerAnimationIndex++;
@@ -492,25 +492,25 @@ void changePalette()
     }
 }
 
-void doThingsToDifferentStrips(bool isInner)
-{  
-    for (uint8_t i = 0; i < NUM_UPPER_STRIPS; i++)
-    {
-        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
-        {
-            CRGB rgb = CRGB(0, 0, 255);
-            setPixelColor(i, j, rgb, isInner);
-        }
-    }
-    for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_INNER_STRIPS; i++)
-    {
-        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
-        {
-            CRGB rgb = CRGB(0, 0, 255);
-            setPixelColor(i, j, rgb, isInner);
-        }
-    }
-}
+// void doThingsToDifferentStrips(bool isInner)
+// {  
+//     for (uint8_t i = 0; i < NUM_UPPER_STRIPS; i++)
+//     {
+//         for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
+//         {
+//             CRGB rgb = CRGB(0, 0, 255);
+//             setPixelColor(i, j, rgb, isInner);
+//         }
+//     }
+//     for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_INNER_STRIPS; i++)
+//     {
+//         for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP; j++)
+//         {
+//             CRGB rgb = CRGB(0, 0, 255);
+//             setPixelColor(i, j, rgb, isInner);
+//         }
+//     }
+// }
 
 void FillLEDsFromPaletteColors(uint8_t colorIndex, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
