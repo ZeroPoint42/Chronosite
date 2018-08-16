@@ -231,17 +231,17 @@ void loop(void)
         outerAnimationIndex++;
         if (gFade == 0)
         {
-            gFade = 64;
+            gFade = 255;
         }
-        else if (gFade == 64)
+        else if (gFade == 255)
+        {
+            gFade = 127;
+        }
+        else if (gFade == 127)
         {
             gFade = 32;
         }
         else if (gFade == 32)
-        {
-            gFade = 4;
-        }
-        else if (gFade == 4)
         {
             gFade = 0;
         }
@@ -595,7 +595,7 @@ void snowSparkle(byte red, byte green, byte blue, int sparkleDelay, int speedDel
 
         EVERY_N_MILLISECONDS(speedDelay)
         {
-            setPixelColor(i, Pixel, CRGB(red, green, blue), isInner);
+            setPixelColor(i, pos, CRGB(red, green, blue), isInner);
         }
     }
 }
