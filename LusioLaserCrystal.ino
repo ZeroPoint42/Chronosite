@@ -58,7 +58,7 @@ uint8_t gBrightness = 200; //127 ~ 1/2 brightness [0-256]
 byte gRed = 100;
 byte gBlue = 100;
 byte gGreen = 100;
-uint32_t gFade = 4;
+uint32_t gFade = 32;
 bool isFading = false;
 CRGBPalette16 currentPalette;
 TBlendType currentBlending;
@@ -306,13 +306,13 @@ void showInnerAnimation()
         break;
     case 7:
         // Fire - (NUM_INNER STRIPS, isInner, Cooling rate, Sparking rate, speed delay
-        Fire(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true, 55, 120, 15);
+        fire(NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true, 55, 120, 15);
         //Fire only shows on strip 2 but in red, green, and blue instead of the red, orange, yellow heat palette from the func.
         //Small amount of red at the begining of strip5 as well. think the button adjustable
         break;
     case 8:
         // SnowSparkle - Color (red, green, blue), sparkle delay, speed delay
-        SnowSparkle(0x10, 0x10, 0x10, 20, random(100, 1000), NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
+        snowSparkle(16, 16, 16, 20, random(100, 1000), NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
         //No idea why but the sparkle only happens on strips 1,4,& 5 ?!
         break;
     case 9:
@@ -351,7 +351,7 @@ void showOuterAnimation()
         paletteCycle(NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
         break;
     case 6:
-        Sparkle(0, 40, 80, 100, NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
+        sparkle(0, 40, 80, 100, NUM_OUTER_STRIPS, NUM_LEDS_PER_OUTER_STRIP, false);
         break;
     case 7:
         break;
@@ -495,10 +495,10 @@ void bpm2(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 
 void sinelon(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
+    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
     // a colored dot sweeping back and forth, with fading trails
     for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
         int pos = beatsin16(13, 0, numLedsPerStrip - 1);
         CRGB rgb = getCRGB(i, pos, isInner);
         rgb += CHSV(gHue, 255, 192);
@@ -509,10 +509,10 @@ void sinelon(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 
 void juggle(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
+    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
     // eight colored dots, weaving in and out of sync with each other
     for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
         byte dothue = 0;
         for (int j = 0; j < 8; j++)
         {
@@ -528,10 +528,10 @@ void juggle(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 
 void confetti(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
+    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
     // random colored speckles that blink in and fade smoothly
     for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
         int pos = random16(numLedsPerStrip);
         CHSV hsv = CHSV(gHue + random8(64), 255, 255);
 
@@ -563,79 +563,44 @@ void confetti(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 //     }
 // }
 
-void fadeInOut(byte red, byte green, byte blue, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
+void sparkle(byte red, byte green, byte blue, int speedDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
-    float r, g, b;
-    if (!isFading)
+    for (uint8_t i = 0; i < numStrips; i++)
     {
-        if (gFade < 65)
-        {
-            gFade++;
-        }
-        else
-        {
-            gFade = 64;
-            isFading = true;
-        }
-    }
-
-    if (isFading)
-    {
-        if (gFade >= 0)
-        {
-            gFade -= 2;
-        }
-        else
-        {
-            gFade = 0;
-            isFading = false;
-        }
-    }
-
-    //64 ~ 1/4 brightness
-    r = (gFade / 256.0) * red;
-    g = (gFade / 256.0) * green;
-    b = (gFade / 256.0) * blue;
-    allColor(r, g, b, numStrips, numLedsPerStrip, isInner);
-}
-
-void Sparkle(byte red, byte green, byte blue, int SpeedDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
-{
-    for (uint8_t n = 0; n < numStrips; n++)
-    {
-        int8_t Pixel = random(numLedsPerStrip);
+        int8_t pos = random(numLedsPerStrip - 1);
         CRGB rgb = CRGB(red, green, blue);
-        setPixelColor(n, Pixel, rgb, isInner);
+        setPixelColor(i, pos, rgb, isInner);
 
-        EVERY_N_MILLISECONDS(SpeedDelay)
+        EVERY_N_MILLISECONDS(speedDelay)
         {
             CRGB rgb = CRGB(0, 0, 0);
-            setPixelColor(n, Pixel, rgb, isInner);
+            setPixelColor(i, pos, rgb, isInner);
         }
     }
 }
 
-void SnowSparkle(byte red, byte green, byte blue, int SparkleDelay, int SpeedDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
+void snowSparkle(byte red, byte green, byte blue, int sparkleDelay, int speedDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     allColor(red, green, blue, numStrips, numLedsPerStrip, isInner);
 
+    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
     for (uint8_t i = 0; i < numStrips; i++)
     {
-        fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
-        int8_t Pixel = random(numLedsPerStrip);
-        CRGB rgb = CRGB(0xff, 0xff, 0xff);
-        EVERY_N_MILLISECONDS(SparkleDelay)
+        int8_t pos = random(numLedsPerStrip - 1);
+
+        EVERY_N_MILLISECONDS(sparkleDelay)
         {
-            setPixelColor(i, Pixel, rgb, isInner);
+            setPixelColor(i, pos, CRGB(255, 255, 255), isInner);
         }
 
-        EVERY_N_MILLISECONDS(SpeedDelay)
+        EVERY_N_MILLISECONDS(speedDelay)
         {
             setPixelColor(i, Pixel, CRGB(red, green, blue), isInner);
         }
     }
 }
-void RunningLights(byte red, byte green, byte blue, int WaveDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
+
+void runningLights(byte red, byte green, byte blue, int WaveDelay, uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner)
 {
     //sin wave running lights
     int Position = 0;
@@ -665,6 +630,111 @@ void RunningLights(byte red, byte green, byte blue, int WaveDelay, uint8_t numSt
                 }
             }
         }
+    }
+}
+
+void meteorRain(byte red, byte green, byte blue, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay, int SpeedDelay)
+{
+    if ((!meteorRandomDecay) || (random(10) > 5))
+    {
+        fadeAll(gFade, NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
+    }
+
+    for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_INNER_STRIPS; i++)
+    {     
+        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP * 2; j++)
+        {
+            // draw meteor
+            for (int k = 0; k < meteorSize; k++)
+            {
+                if ((j - k < NUM_LEDS_PER_INNER_STRIP) && (j - k >= 0))
+                {
+                    CRGB rgb = CRGB(red, green, blue);
+
+                    //if (currentMillis - previousMillis > SpeedDelay)     { // Time to update
+                    //previousMillis = currentMillis;
+                    EVERY_N_MILLISECONDS(SpeedDelay)
+                    {
+                        setPixelColor(i, j - k, rgb, true);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void fire(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner, int Cooling, int Sparking, int SpeedDelay)
+{
+    byte heat[numLedsPerStrip];
+    int cooldown;
+
+    // Step 0. Fade everything just a little bit
+    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
+
+    // Step 1.  Cool down every cell a little
+    for (int i = 0; i < numLedsPerStrip; i++)
+    {
+        cooldown = random(0, ((Cooling * 10) / numLedsPerStrip) + 2);
+
+        if (cooldown > heat[i])
+        {
+            heat[i] = 0;
+        }
+        else
+        {
+            heat[i] = heat[i] - cooldown;
+        }
+    }
+
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for (int k = numLedsPerStrip - 1; k >= 2; k--)
+    {
+        heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+    }
+
+    // Step 3.  Randomly ignite new 'sparks' near the bottom
+    if (random(255) < Sparking)
+    {
+        int y = random(7);
+        heat[y] = heat[y] + random(160, 255);
+        //heat[y] = random(160,255);
+    }
+
+    // Step 4.  Convert heat to LED colors
+    for (int i = 0; i < numStrips; i++)
+    {
+        for (int j = 0; j < numLedsPerStrip; j++)
+        {
+            CRGB heatColor = getHeatRGB(heat[j]);
+            setPixelColor(i, j, heatColor, isInner);
+        }
+    }
+}
+
+CRGB getHeatRGB(byte temperature)
+{
+    // Scale 'heat' down from 0-255 to 0-191
+    byte temp = round((temperature / 255.0) * 191);
+
+    // calculate ramp up from
+    byte heatRamp = temp & 0x3F; // 0..63
+    heatRamp <<= 2;              // scale up to 0..252
+
+    // figure out which third of the spectrum we're in:
+    if (temp > 128)
+    { 
+        // hottest
+        return CRGB(255, 255, heatRamp);
+    }
+    else if (temp > 64)
+    { 
+        // middle
+        return CRGB(255, heatRamp, 0);
+    }
+    else
+    { 
+        // coolest
+        return CRGB(heatRamp, 0, 0);
     }
 }
 
@@ -850,160 +920,4 @@ CRGB getCRGB(int row, int pos, bool isInner)
     byte blue = colorInt & 255;
 
     return CRGB(red, green, blue);
-}
-
-void meteorRain(byte red, byte green, byte blue, byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay, int SpeedDelay)
-{
-    for (uint8_t i = NUM_UPPER_STRIPS; i < NUM_INNER_STRIPS; i++)
-    {
-        if ((!meteorRandomDecay) || (random(10) > 5))
-        {
-            fadeAll(gFade, NUM_INNER_STRIPS, NUM_LEDS_PER_INNER_STRIP, true);
-        }
-        
-        for (int j = 0; j < NUM_LEDS_PER_INNER_STRIP * 2; j++)
-        {
-
-            // fade brightness all LEDs one step
-            // for (int k = 0; k < numLedsPerStrip; k++)
-            // {
-            //     if ((!meteorRandomDecay) || (random(10) > 5))
-            //     {
-            //         fadeToBlack(i, k, meteorTrailDecay, isInner);
-            //         //fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
-            //     }
-            // }
-
-            // draw meteor
-            for (int k = 0; k < meteorSize; k++)
-            {
-                if ((j - k < NUM_LEDS_PER_INNER_STRIP) && (j - k >= 0))
-                {
-                    CRGB rgb = CRGB(red, green, blue);
-
-                    //if (currentMillis - previousMillis > SpeedDelay)     { // Time to update
-                    //previousMillis = currentMillis;
-                    EVERY_N_MILLISECONDS(SpeedDelay)
-                    {
-                        setPixelColor(i, j - k, rgb, true);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// used by meteorrain
-void fadeToBlack(int row, int pos, byte fadeValue, bool isInner)
-{
-
-    // NeoPixel
-    uint32_t oldColor;
-    uint8_t r, g, b;
-    int value;
-
-    oldColor = innerLeds.getPixelColor((row * NUM_LEDS_PER_INNER_STRIP) + pos);
-    r = (oldColor & 0x00ff0000UL) >> 16;
-    g = (oldColor & 0x0000ff00UL) >> 8;
-    b = (oldColor & 0x000000ffUL);
-
-    r = (r <= 10) ? 0 : (int)r - (r * fadeValue / 256);
-    g = (g <= 10) ? 0 : (int)g - (g * fadeValue / 256);
-    b = (b <= 10) ? 0 : (int)b - (b * fadeValue / 256);
-    CRGB rgb = CRGB(r, g, b);
-    setPixelColor(row, pos, rgb, isInner);
-}
-
-void Fire(uint8_t numStrips, uint8_t numLedsPerStrip, bool isInner, int Cooling, int Sparking, int SpeedDelay)
-{
-
-    //Code is wonky... As of 8/14/2018 only row 2 is flashing, but with only RGB, not the heat pallete that is set up.
-    static byte heat[numLedsPerStrip];
-    int cooldown;
-    fadeAll(gFade, numStrips, numLedsPerStrip, isInner);
-
-    // Step 1.  Cool down every cell a little
-    for (int i = 0; i < numLedsPerStrip; i++)
-    {
-        cooldown = random(0, ((Cooling * 10) / numLedsPerStrip) + 2);
-
-        if (cooldown > heat[i])
-        {
-            heat[i] = 0;
-        }
-        else
-        {
-            heat[i] = heat[i] - cooldown;
-        }
-    }
-
-    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-    for (int k = numLedsPerStrip - 1; k >= 2; k--)
-    {
-        heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
-    }
-
-    // Step 3.  Randomly ignite new 'sparks' near the bottom
-    if (random(255) < Sparking)
-    {
-        int y = random(7);
-        heat[y] = heat[y] + random(160, 255);
-        //heat[y] = random(160,255);
-    }
-
-    // Step 4.  Convert heat to LED colors
-    for (int i = 0; i < numSteps; i++)
-    {
-        for (int j = 0; j < numLedsPerStrip; j++)
-        {
-            CRGB heatColor = getHeatRGB(heat[j]);
-            setPixelColor(i, j, heatColor);
-        }
-    }
-
-    // EVERY_N_MILLISECONDS(SpeedDelay)
-    // {
-    //     innerLeds.show();
-    // }
-}
-
-CRGB getHeatRBG(byte temperature)
-{
-    // Scale 'heat' down from 0-255 to 0-191
-    byte temp = round((temperature / 255.0) * 191);
-
-    // calculate ramp up from
-    byte heatRamp = temp & 0x3F; // 0..63
-    heatRamp <<= 2;              // scale up to 0..252
-
-    // figure out which third of the spectrum we're in:
-    if (temp > 128)
-    { 
-        // hottest
-        return CRGB(255, 255, heatRamp);
-    }
-    else if (temp > 64)
-    { 
-        // middle
-        return CRGB(255, heatRamp, 0);
-    }
-    else
-    { 
-        // coolest
-        return CRGB(heatRamp, 0, 0);
-    }
-}
-
-void showInnerStrip(byte red, byte green, byte blue)
-{
-    // NeoPixel
-    for (uint8_t n = 0; n < NUM_INNER_STRIPS; n++)
-    {
-        for (uint8_t i = 0; i < NUM_LEDS_PER_INNER_STRIP; i++)
-        {
-            CRGB rgb = CRGB(red, green, blue);
-
-            setPixelColor(n, i, rgb, true);
-        }
-    }
 }
